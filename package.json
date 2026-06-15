@@ -1,0 +1,16 @@
+{
+  "name": "context-capture",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "context-capture": "./bin/context-capture.js"
+  },
+  "scripts": {
+    "doctor": "node ./bin/context-capture.js doctor",
+    "test": "node --test tests/*.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
