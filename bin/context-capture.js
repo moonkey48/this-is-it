@@ -12,6 +12,7 @@ import {
   VERSION,
 } from "../src/config.js";
 import { copyToClipboard } from "../src/clipboard.js";
+import { triggerChromeSelection } from "../src/chrome-trigger.js";
 import { readLatestMarkdown } from "../src/store.js";
 import { startCaptureServer } from "../src/server.js";
 
@@ -106,11 +107,15 @@ async function requestCapture(args) {
     timeoutMs: timeoutSeconds * 1000,
   });
 
+  const trigger = await triggerChromeSelection({ requestId: capture.requestId, port });
+
   console.error(
     [
       `Waiting for Chrome selection on http://127.0.0.1:${capture.port}`,
-      "Select an area in the active Chrome tab.",
-      "If nothing appears, click the Context Capture extension button while this command is waiting.",
+      trigger.ok
+        ? "Triggered the active Chrome tab. Select an area in Chrome."
+        : `Could not trigger Chrome automatically: ${trigger.error}`,
+      "If nothing appears, reload the page or click the Context Capture extension button while this command is waiting.",
     ].join("\n"),
   );
 

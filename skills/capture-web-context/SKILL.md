@@ -6,7 +6,7 @@ allowed-tools: Bash
 
 # Capture Web Context
 
-Use the local `context-capture` CLI to ask the user to select part of the active Chrome page. The command prints Markdown context to stdout and also copies it to the clipboard.
+Use the local `context-capture` CLI to ask the user to select part of the active Chrome page. The command triggers the active Chrome tab on macOS, prints Markdown context to stdout, and also copies it to the clipboard.
 
 ## Workflow
 
@@ -22,9 +22,11 @@ context-capture request --timeout 60
 node /path/to/context-capture/bin/context-capture.js request --timeout 60
 ```
 
-3. Tell the user to drag over the target Chrome page area if the overlay appears. If no overlay appears, tell them to click the Context Capture Chrome extension button while the command is still waiting.
+3. Tell the user to drag over the target Chrome page area if the overlay appears. If macOS asks for Automation permission to control Google Chrome, tell the user to allow it.
 
-4. Treat the command stdout as the captured source context. It includes URL, title, selected text, links, image alt text, and a DOM summary.
+4. If no overlay appears, tell the user to reload the page or click the Context Capture Chrome extension button while the command is still waiting.
+
+5. Treat the command stdout as the captured source context. It includes URL, title, selected text, links, image alt text, and a DOM summary.
 
 ## Commands
 

@@ -1,5 +1,5 @@
 (function installContextCapture() {
-  if (window.__contextCaptureInstalled) return;
+  if (window.__contextCaptureInstalled && window.__contextCaptureStart) return;
   window.__contextCaptureInstalled = true;
 
   const PORT = 37421;
@@ -432,11 +432,34 @@
     }
   }
 
-  chrome.runtime?.onMessage?.addListener((message) => {
+  async function startPendingOrManual() {
+    try {
+      const response = await fetch(`${BASE_URL}/api/request`, { cache: "no-store" });
+      if (response.ok) {
+        const body = await response.json();
+        if (body.state === "pending" && body.requestId) {
+          lastRequestId = body.requestId;
+          const claimed = await claimRequest(body.requestId);
+          if (claimed) {
+            startOverlay({ requestId: body.requestId });
+            return;
+          }
+        }
+      }
+    } catch {
+      // No waiting CLI request; start a standalone clipboard capture.
+    }
+    startOverlay({});
+  }
+
+  globalThis.chrome?.runtime?.onMessage?.addListener((message) => {
     if (message?.type === "context-capture:start-manual") {
-      startOverlay({});
+      startPendingOrManual();
     }
   });
+
+  window.__contextCaptureStart = startOverlay;
+  window.__contextCaptureStartPendingOrManual = startPendingOrManual;
 
   pollTimer = window.setInterval(poll, POLL_INTERVAL_MS);
   window.addEventListener("beforeunload", () => window.clearInterval(pollTimer));
