@@ -1,0 +1,4 @@
+interface:
+  display_name: "Capture Web Context"
+  short_description: "Capture Chrome page regions for agents"
+  default_prompt: "Use $capture-web-context to capture the selected Chrome page area as context."
