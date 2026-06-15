@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Context Capture",
+  "description": "Select part of a Chrome page and send URL, text, and DOM context to Codex or Claude Code.",
+  "version": "0.1.0",
+  "permissions": ["activeTab", "clipboardWrite", "scripting"],
+  "host_permissions": ["<all_urls>", "http://127.0.0.1:37421/*", "http://localhost:37421/*"],
+  "action": {
+    "default_title": "Capture web context"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "commands": {
+    "capture-context": {
+      "description": "Capture web context",
+      "suggested_key": {
+        "default": "Alt+Shift+C",
+        "mac": "Alt+Shift+C"
+      }
+    }
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-script.js"],
+      "css": ["content-style.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}
