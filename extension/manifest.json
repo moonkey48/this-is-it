@@ -3,8 +3,8 @@
   "name": "Context Capture",
   "description": "Select part of a Chrome page and send URL, text, and DOM context to Codex or Claude Code.",
   "version": "0.1.0",
-  "permissions": ["activeTab", "clipboardWrite", "scripting"],
-  "host_permissions": ["<all_urls>", "http://127.0.0.1:37421/*", "http://localhost:37421/*"],
+  "permissions": ["activeTab", "clipboardWrite", "nativeMessaging", "scripting"],
+  "host_permissions": ["<all_urls>"],
   "action": {
     "default_title": "Capture web context"
   },

@@ -4,3 +4,4 @@
 - Fallback instructions must match behavior. If a CLI says "click the extension button while waiting", that button must attach to the pending CLI request, not only copy a standalone capture to the clipboard.
 - When injecting browser UI through AppleScript, do not rely on a separate extension CSS file. The injected script must create the visible styles and on-screen instructions itself.
 - Chrome unpacked extension metadata may be stored in `Secure Preferences`, not only `Preferences`, and may omit `manifest.name` and `state`. Detect by path plus empty `disable_reasons`.
+- For Claude/Codex common workflows, avoid shell processes that wait for a browser event. Prefer user-driven Chrome extension capture to clipboard, then let agents read the clipboard/latest result afterward.

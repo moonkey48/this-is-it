@@ -3,7 +3,6 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const VERSION = "0.1.0";
-export const DEFAULT_PORT = Number(process.env.CONTEXT_CAPTURE_PORT || 37421);
 export const STATE_DIR =
   process.env.CONTEXT_CAPTURE_STATE_DIR || path.join(os.tmpdir(), "context-capture");
 export const LATEST_MARKDOWN_PATH = path.join(STATE_DIR, "latest.md");

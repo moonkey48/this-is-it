@@ -1,11 +1,13 @@
 # Context Capture
 
-Chrome 화면에서 원하는 영역을 드래그하면, 해당 웹페이지의 URL, 제목, 선택 영역의 텍스트, 링크, 이미지 alt, DOM 요약을 Markdown으로 만들어 Codex와 Claude Code에서 바로 쓸 수 있게 해주는 도구입니다.
+Chrome에서 원하는 영역을 드래그해 URL, 제목, 선택 영역 텍스트, 링크, 이미지 alt, DOM 요약을 Markdown으로 캡처하는 도구입니다.
 
-결과는 두 군데로 전달됩니다.
+Claude Code와 Codex에서 공통으로 쓰기 위해 자동 브라우저 제어를 제거했습니다. 사용 흐름은 단순합니다.
 
-- 현재 명령의 stdout
-- macOS 클립보드
+1. Chrome 툴바의 `Context Capture` C 아이콘 클릭
+2. 페이지에서 원하는 영역 드래그
+3. 결과가 클립보드에 복사됨
+4. Claude Code 또는 Codex에서 `context-capture latest`로 클립보드의 캡처 결과 읽기
 
 ## 지원 환경
 
@@ -32,117 +34,79 @@ scripts/install.sh
 설치 스크립트가 하는 일:
 
 - `~/.local/bin/context-capture` CLI 연결
+- Chrome native messaging host 설치 (선택적 최신 파일 저장용)
 - `~/.codex/skills/capture-web-context` 설치
 - `~/.claude/skills/capture-web-context` 설치
 - `~/.claude/commands/capture-context.md` 설치
 - `context-capture doctor` 실행
 
-기본 사용 흐름은 macOS Automation으로 실행 중인 Chrome의 활성 탭에 선택 오버레이를 직접 띄웁니다. 첫 실행 때 macOS가 터미널, Claude Code, 또는 Codex에 Google Chrome 제어 권한을 물어볼 수 있습니다. 허용해야 자동으로 오버레이가 뜹니다.
-
-자동 주입이 막히는 환경을 대비해 Chrome 확장도 한 번 로드해두는 것을 권장합니다. `context-capture doctor`는 확장이 실제 Chrome profile에 로드됐는지도 확인합니다.
+그 다음 Chrome 확장을 한 번만 로드하세요.
 
 1. Chrome에서 `chrome://extensions` 열기
 2. Developer mode 켜기
 3. Load unpacked 클릭
 4. 이 repo의 `extension/` 폴더 선택
-5. Chrome 툴바의 퍼즐 아이콘을 누르고 Context Capture를 pin 해두기
+5. Chrome 툴바의 퍼즐 아이콘을 누르고 Context Capture를 pin 하기
 
 ## 사용법
 
-Codex 또는 터미널에서:
+Chrome에서:
+
+1. 캡처하고 싶은 페이지를 엽니다.
+2. 툴바의 `C` 아이콘을 클릭합니다.
+3. 화면 상단에 `Drag to select the page area`가 보이면 영역을 드래그합니다.
+4. 캡처 결과가 클립보드에 저장됩니다.
+
+Codex 또는 터미널에서 최신 캡처 읽기:
 
 ```bash
-context-capture request --timeout 60
+context-capture latest
 ```
 
 Claude Code에서:
 
 ```text
-/capture-context --timeout 60
+/capture-context
 ```
-
-명령이 대기 중일 때 실행 중인 Chrome의 활성 탭 위에 선택 오버레이가 뜹니다. Chrome 화면 상단에 `Drag to select the page area` 안내가 보이면 원하는 영역을 드래그하세요. Markdown 결과가 stdout으로 출력되고 클립보드에도 복사됩니다.
-
-오버레이가 뜨지 않으면:
-
-1. macOS Automation 권한에서 현재 터미널, Claude Code, 또는 Codex가 Google Chrome을 제어할 수 있는지 확인하세요.
-2. Chrome 확장을 로드한 상태라면, 명령이 대기 중일 때 Chrome 툴바의 고정된 Context Capture `C` 아이콘을 클릭하세요. 고정하지 않았다면 퍼즐 아이콘 > Context Capture를 클릭하세요.
-3. 확장 버튼을 누르면 대기 중인 CLI 요청에 붙어서 stdout/clipboard 결과를 반환합니다.
 
 ## Codex에서 쓰기
 
-Codex에서 웹페이지 일부를 참고해 작업하고 싶을 때:
+먼저 Chrome에서 `C` 아이콘으로 영역을 캡처한 뒤 Codex에서:
 
 ```text
-Use $capture-web-context to capture the selected Chrome page area, then use it as context.
+Use $capture-web-context to read the latest captured Chrome context.
 ```
 
 또는 직접:
 
 ```bash
-context-capture request --timeout 60
+context-capture latest
 ```
-
-Codex는 stdout으로 나온 Markdown을 현재 작업의 근거 자료로 사용할 수 있습니다.
 
 ## Claude Code에서 쓰기
 
-Claude Code에서는 slash command가 설치됩니다.
+먼저 Chrome에서 `C` 아이콘으로 영역을 캡처한 뒤 Claude Code에서:
 
 ```text
-/capture-context --timeout 60
+/capture-context
 ```
 
-출력된 Markdown을 Claude Code가 이어서 분석하거나 수정 작업의 참고 자료로 사용할 수 있습니다.
-
-## 프로젝트 수정하기
-
-Codex나 Claude Code에서 이 폴더를 열고 원하는 변경을 요청하면 됩니다.
+## 상태 점검
 
 ```bash
-cd this-is-it
-codex
-```
-
-또는:
-
-```bash
-cd this-is-it
-claude
-```
-
-자주 수정할 파일:
-
-| 목적 | 파일 |
-| --- | --- |
-| CLI 명령, timeout, doctor | `bin/context-capture.js` |
-| 로컬 HTTP 서버 | `src/server.js` |
-| Markdown 출력 형태 | `src/format.js` |
-| Chrome 선택 UI와 DOM 추출 | `extension/content-script.js` |
-| Chrome 확장 권한/단축키 | `extension/manifest.json` |
-| Codex/Claude 스킬 안내 | `skills/capture-web-context/SKILL.md` |
-| Claude slash command | `integrations/claude/commands/capture-context.md` |
-| 설치 동작 | `scripts/install.sh` |
-
-수정 후 확인:
-
-```bash
-npm test
 context-capture doctor
 ```
 
-Chrome extension 파일을 수정했다면 `chrome://extensions`에서 Context Capture를 Reload 하세요.
+`Chrome extension loaded`가 `[OK]`여야 합니다.
 
 ## 업데이트
-
-이미 설치한 사용자는 최신 코드를 받은 뒤 설치 스크립트를 다시 실행하면 됩니다.
 
 ```bash
 git pull
 scripts/install.sh
 ```
 
-확장 파일이 바뀐 경우 Chrome extension도 Reload 하세요.
+확장 파일이 바뀐 경우 `chrome://extensions`에서 Context Capture를 Reload 하세요.
 
 ## 문제 해결
 
@@ -153,32 +117,40 @@ echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc
 source ~/.zshrc
 ```
 
-상태 점검:
+확장이 로드되지 않았다고 나올 때:
 
-```bash
-context-capture doctor
-```
+- `chrome://extensions`에서 현재 checkout의 `extension/` 폴더가 Load unpacked 되었는지 확인하세요.
+- 여러 checkout을 쓰는 경우 `doctor`에 표시되는 경로와 Chrome에 로드한 경로가 같아야 합니다.
+- 툴바의 퍼즐 아이콘에서 Context Capture를 pin 하세요.
 
-포트가 사용 중일 때:
+캡처 후 `latest`가 없다고 나올 때:
 
-```bash
-lsof -i :37421
-```
+- 클립보드가 다른 내용으로 덮어써졌는지 확인하세요.
+- Chrome 확장을 Reload 한 뒤 다시 캡처하세요.
+- 선택적 파일 저장까지 필요하면 `scripts/install.sh`를 다시 실행해 native messaging host를 재설치하세요.
 
-오버레이가 뜨지 않을 때:
+## 개발
 
-- 현재 탭이 일반 `https://` 웹페이지인지 확인하세요.
-- macOS Automation 권한에서 현재 실행 앱이 Google Chrome을 제어할 수 있는지 확인하세요.
-- `context-capture doctor`에서 `Chrome extension loaded`가 `[OK]`인지 확인하세요.
-- Chrome 확장이 보이지 않으면 툴바의 퍼즐 아이콘을 누른 뒤 Context Capture를 pin 하세요.
-- 페이지를 새로고침한 뒤 다시 시도하세요.
-- 명령이 대기 중일 때 Chrome 툴바의 고정된 Context Capture `C` 아이콘을 클릭하세요. 고정하지 않았다면 퍼즐 아이콘 > Context Capture를 클릭하세요.
+자주 수정할 파일:
 
-## 개발 명령
+| 목적 | 파일 |
+| --- | --- |
+| CLI, doctor, latest | `bin/context-capture.js` |
+| Native host 저장 로직 | `bin/context-capture-native-host.js` |
+| Markdown 출력 형태 | `src/format.js` |
+| Chrome 선택 UI와 DOM 추출 | `extension/content-script.js` |
+| Chrome 확장 버튼/native messaging | `extension/background.js` |
+| Chrome 확장 권한 | `extension/manifest.json` |
+| Codex/Claude 스킬 안내 | `skills/capture-web-context/SKILL.md` |
+| Claude slash command | `integrations/claude/commands/capture-context.md` |
+| 설치 동작 | `scripts/install.sh` |
+
+검증:
 
 ```bash
 npm test
 node --check bin/context-capture.js
+node --check bin/context-capture-native-host.js
 node --check extension/content-script.js
 node --check extension/background.js
 ```

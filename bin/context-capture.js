@@ -1,32 +1,28 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
 import fs from "node:fs/promises";
-import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 
 import {
-  DEFAULT_PORT,
   EXTENSION_DIR,
   LATEST_MARKDOWN_PATH,
   VERSION,
 } from "../src/config.js";
-import { copyToClipboard } from "../src/clipboard.js";
+import { readClipboard } from "../src/clipboard.js";
 import { getChromeExtensionStatus } from "../src/chrome-extension.js";
-import { isAppleEventsJavaScriptDisabled, triggerChromeSelection } from "../src/chrome-trigger.js";
 import { readLatestMarkdown } from "../src/store.js";
-import { startCaptureServer } from "../src/server.js";
 
 function usage() {
   return `context-capture ${VERSION}
 
 Usage:
-  context-capture request [--timeout 60] [--no-clipboard]
+  context-capture capture
   context-capture latest
-  context-capture doctor [--port ${DEFAULT_PORT}]
+  context-capture doctor
 
 Commands:
-  request   Wait for a Chrome region selection, copy Markdown, and print it.
+  capture   Show how to capture from Chrome extension.
   latest    Print the latest captured Markdown.
   doctor    Check local prerequisites and installation paths.
 `;
@@ -74,102 +70,48 @@ function commandExists(command) {
   });
 }
 
-function checkPort(port, host = "127.0.0.1") {
-  return new Promise((resolve) => {
-    const server = net.createServer();
-    server.once("error", (error) => {
-      resolve({ available: false, error });
-    });
-    server.once("listening", () => {
-      server.close(() => resolve({ available: true }));
-    });
-    server.listen(port, host);
-  });
-}
-
-async function requestCapture(args) {
-  if (args.port !== undefined && Number(args.port) !== DEFAULT_PORT) {
-    throw new Error(
-      `The Chrome extension polls the fixed v1 port ${DEFAULT_PORT}. Custom request ports are not supported yet.`,
-    );
-  }
-  const port = DEFAULT_PORT;
-  const timeoutSeconds = numberArg(args.timeout, 60, "timeout");
-
-  const portCheck = await checkPort(port);
-  if (!portCheck.available) {
-    throw new Error(
-      `Port ${port} is not available. Another capture may already be waiting, or another process is using it.`,
-    );
-  }
-
-  const capture = await startCaptureServer({
-    port,
-    timeoutMs: timeoutSeconds * 1000,
-  });
-
-  const trigger = await triggerChromeSelection({ requestId: capture.requestId, port });
+async function capture() {
   const extensionStatus = await getChromeExtensionStatus();
-
-  if (!trigger.ok && !extensionStatus.enabled) {
-    await capture.close();
-    const appleEventsBlocked = isAppleEventsJavaScriptDisabled(trigger.error);
-    const reason = appleEventsBlocked
-      ? "Chrome blocked the automatic trigger because Allow JavaScript from Apple Events is disabled."
-      : `Chrome could not be triggered automatically: ${trigger.error}`;
+  if (!extensionStatus.enabled) {
     throw new Error(
       [
-        reason,
-        "",
-        "No enabled Context Capture Chrome extension was found, so there is no way to show the selector in Chrome.",
-        "",
-        "Fix one of these, then rerun the command:",
-        "1. Chrome menu: View > Developer > Allow JavaScript from Apple Events",
-        `2. Or load the extension: chrome://extensions > Developer mode > Load unpacked > ${EXTENSION_DIR}`,
-        "",
-        "After loading the extension, click the puzzle icon in Chrome toolbar, pin Context Capture, then rerun.",
+        "Context Capture extension is not loaded in this Chrome profile.",
+        `Load it from: ${EXTENSION_DIR}`,
+        "Chrome: chrome://extensions > Developer mode > Load unpacked",
       ].join("\n"),
     );
   }
 
-  console.error(
+  process.stdout.write(
     [
-      `Waiting for Chrome selection on http://127.0.0.1:${capture.port}`,
-      trigger.ok
-        ? "A selection overlay should now be visible in the active Chrome tab. Drag over the page area to capture."
-        : isAppleEventsJavaScriptDisabled(trigger.error)
-          ? "Chrome blocked auto-trigger. Use the extension fallback now: click the pinned Context Capture C icon, or Chrome toolbar puzzle icon > Context Capture, then drag to select."
-          : `Could not trigger Chrome automatically: ${trigger.error}`,
-      extensionStatus.enabled
-        ? `Extension fallback is available in Chrome profile: ${extensionStatus.message}`
-        : "Extension fallback is not available.",
+      "Open Chrome and click the pinned Context Capture C icon.",
+      "Drag the page area you want to capture.",
+      "The result will be copied to clipboard and saved to /tmp/context-capture/latest.md.",
+      "",
+      "After capture, run:",
+      "context-capture latest",
+      "",
     ].join("\n"),
   );
-
-  try {
-    const result = await capture.waitForResult();
-    if (!args.noClipboard) {
-      const copied = await copyToClipboard(result.markdown);
-      if (!copied) {
-        console.error("Warning: pbcopy was unavailable, so clipboard copy was skipped.");
-      }
-    }
-    process.stdout.write(`${result.markdown.trimEnd()}\n`);
-  } finally {
-    await capture.close();
-  }
 }
 
 async function latest() {
-  const markdown = await readLatestMarkdown();
+  const clipboard = await readClipboard();
+  let markdown = "";
+  if (clipboard.trimStart().startsWith("# Captured Web Context")) {
+    markdown = clipboard;
+  } else {
+    markdown = await readLatestMarkdown();
+  }
   if (!markdown) {
-    throw new Error(`No latest capture found at ${LATEST_MARKDOWN_PATH}.`);
+    throw new Error(
+      `No latest capture found at ${LATEST_MARKDOWN_PATH}, and clipboard does not contain a Context Capture result.`,
+    );
   }
   process.stdout.write(`${markdown.trimEnd()}\n`);
 }
 
-async function doctor(args) {
-  const port = numberArg(args.port, DEFAULT_PORT, "port");
+async function doctor() {
   const rows = [];
   let ok = true;
 
@@ -180,13 +122,9 @@ async function doctor(args) {
   rows.push(["pbcopy", pbcopy ? "found" : "missing", pbcopy]);
   if (!pbcopy) ok = false;
 
-  const portCheck = await checkPort(port);
-  rows.push([
-    `Port ${port}`,
-    portCheck.available ? "available" : "busy",
-    portCheck.available,
-  ]);
-  if (!portCheck.available) ok = false;
+  const pbpaste = await commandExists("pbpaste");
+  rows.push(["pbpaste", pbpaste ? "found" : "missing", pbpaste]);
+  if (!pbpaste) ok = false;
 
   const extensionExists = await fs
     .access(EXTENSION_DIR)
@@ -202,6 +140,25 @@ async function doctor(args) {
     extensionStatus.enabled,
   ]);
   if (!extensionStatus.enabled) ok = false;
+
+  const nativeHost = path.join(
+    os.homedir(),
+    "Library",
+    "Application Support",
+    "Google",
+    "Chrome",
+    "NativeMessagingHosts",
+    "com.moonkey48.context_capture.json",
+  );
+  const nativeHostExists = await fs
+    .access(nativeHost)
+    .then(() => true)
+    .catch(() => false);
+  rows.push([
+    "Native messaging host",
+    nativeHostExists ? `${nativeHost} (optional)` : "not installed (optional)",
+    true,
+  ]);
 
   const home = os.homedir();
   const codexSkill = path.join(home, ".codex", "skills", "capture-web-context", "SKILL.md");
@@ -225,6 +182,7 @@ async function doctor(args) {
 
   process.stdout.write(`\nLoad this unpacked extension in Chrome:\n${EXTENSION_DIR}\n`);
   process.stdout.write("Chrome: chrome://extensions -> Developer mode -> Load unpacked\n");
+  process.stdout.write("Then pin the Context Capture C icon and click it to capture.\n");
 
   if (!ok) process.exitCode = 1;
 }
@@ -238,8 +196,8 @@ async function main() {
     return;
   }
 
-  if (command === "request") {
-    await requestCapture(args);
+  if (command === "capture" || command === "request") {
+    await capture(args);
     return;
   }
 

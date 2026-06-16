@@ -2,9 +2,6 @@
   if (window.__contextCaptureInstalled && window.__contextCaptureStart) return;
   window.__contextCaptureInstalled = true;
 
-  const PORT = 37421;
-  const BASE_URL = `http://127.0.0.1:${PORT}`;
-  const POLL_INTERVAL_MS = 900;
   const MAX_TEXT_LENGTH = 8000;
   const MAX_ELEMENTS = 35;
   const MAX_LINKS = 15;
@@ -51,8 +48,6 @@
 }
 `;
   let overlayActive = false;
-  let lastRequestId = "";
-  let pollTimer = 0;
 
   function normalizeSpace(value) {
     return String(value || "")
@@ -312,10 +307,30 @@
       "## Selected Text",
       "",
       payload.text || "(no visible text captured)",
-      "",
-      "## DOM Summary",
-      "",
     ];
+
+    if (payload.headings.length) {
+      lines.push("", "## Nearby Headings", "");
+      for (const heading of payload.headings) {
+        lines.push(`- H${heading.level}: ${heading.text}`);
+      }
+    }
+
+    if (payload.links.length) {
+      lines.push("", "## Links", "");
+      for (const link of payload.links) {
+        lines.push(`- [${link.text || link.href}](${link.href})`);
+      }
+    }
+
+    if (payload.images.length) {
+      lines.push("", "## Images", "");
+      for (const image of payload.images) {
+        lines.push(`- ${image.alt || "(no alt text)"}${image.src ? ` - ${image.src}` : ""}`);
+      }
+    }
+
+    lines.push("", "## DOM Summary", "");
     for (const element of payload.elements.slice(0, MAX_ELEMENTS)) {
       lines.push(`- \`${element.selector}\` <${element.tag}> ${element.text || element.label || ""}`.trim());
     }
@@ -351,12 +366,16 @@
   }
 
   async function postResult(requestId, payload) {
-    const response = await fetch(`${BASE_URL}/api/result`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ requestId, payload }),
-    });
-    return response.ok;
+    if (!requestId) return false;
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: "context-capture:save",
+        payload,
+      });
+      return Boolean(response?.ok);
+    } catch {
+      return false;
+    }
   }
 
   function startOverlay(options = {}) {
@@ -429,11 +448,14 @@
       }
 
       const payload = payloadForSelection(selection);
+      const markdown = localMarkdown(payload);
+      const copied = await copyText(markdown);
+
       if (options.requestId) {
         try {
           const posted = await postResult(options.requestId, payload);
           if (posted) {
-            toast("Captured for agent.");
+            toast(copied ? "Captured to clipboard and latest file." : "Saved latest file, but clipboard copy failed.");
             return;
           }
         } catch {
@@ -441,7 +463,6 @@
         }
       }
 
-      const copied = await copyText(localMarkdown(payload));
       toast(copied ? "Captured to clipboard." : "Capture ready, but clipboard copy failed.");
     });
 
@@ -449,11 +470,9 @@
       if (event.key === "Escape") {
         cleanup();
         if (options.requestId) {
-          fetch(`${BASE_URL}/api/result`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ requestId: options.requestId, cancelled: true }),
-          }).catch(() => {});
+          chrome.runtime
+            ?.sendMessage?.({ type: "context-capture:cancelled", requestId: options.requestId })
+            .catch?.(() => {});
         }
       }
     });
@@ -461,50 +480,8 @@
     overlay.focus();
   }
 
-  async function claimRequest(requestId) {
-    const response = await fetch(`${BASE_URL}/api/claim`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ requestId, url: location.href, title: document.title }),
-    });
-    if (!response.ok) return false;
-    const body = await response.json();
-    return Boolean(body.ok);
-  }
-
-  async function poll() {
-    if (document.visibilityState !== "visible" || window.top !== window || overlayActive) return;
-    try {
-      const response = await fetch(`${BASE_URL}/api/request`, { cache: "no-store" });
-      if (!response.ok) return;
-      const body = await response.json();
-      if (body.state !== "pending" || !body.requestId || body.requestId === lastRequestId) return;
-      lastRequestId = body.requestId;
-      const claimed = await claimRequest(body.requestId);
-      if (claimed) startOverlay({ requestId: body.requestId });
-    } catch {
-      // The helper server only exists while an agent command is waiting.
-    }
-  }
-
   async function startPendingOrManual() {
-    try {
-      const response = await fetch(`${BASE_URL}/api/request`, { cache: "no-store" });
-      if (response.ok) {
-        const body = await response.json();
-        if (body.state === "pending" && body.requestId) {
-          lastRequestId = body.requestId;
-          const claimed = await claimRequest(body.requestId);
-          if (claimed) {
-            startOverlay({ requestId: body.requestId });
-            return;
-          }
-        }
-      }
-    } catch {
-      // No waiting CLI request; start a standalone clipboard capture.
-    }
-    startOverlay({});
+    startOverlay({ requestId: "manual" });
   }
 
   globalThis.chrome?.runtime?.onMessage?.addListener((message) => {
@@ -515,7 +492,4 @@
 
   window.__contextCaptureStart = startOverlay;
   window.__contextCaptureStartPendingOrManual = startPendingOrManual;
-
-  pollTimer = window.setInterval(poll, POLL_INTERVAL_MS);
-  window.addEventListener("beforeunload", () => window.clearInterval(pollTimer));
 })();

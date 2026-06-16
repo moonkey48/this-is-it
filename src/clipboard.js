@@ -8,3 +8,15 @@ export function copyToClipboard(text) {
     child.stdin.end(text);
   });
 }
+
+export function readClipboard() {
+  return new Promise((resolve) => {
+    const child = spawn("pbpaste", [], { stdio: ["ignore", "pipe", "ignore"] });
+    let stdout = "";
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+    });
+    child.on("error", () => resolve(""));
+    child.on("close", (code) => resolve(code === 0 ? stdout : ""));
+  });
+}

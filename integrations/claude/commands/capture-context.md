@@ -1,12 +1,16 @@
 ---
-description: Capture selected Chrome page area as URL, text, and DOM context
-argument-hint: "[--timeout seconds]"
+description: Read latest Chrome Context Capture result
+argument-hint: ""
 ---
 
-Run this Bash command and use its stdout as the captured web context:
+Tell the user to click the pinned Context Capture C icon in Chrome, drag a page area, then read the latest captured context with:
 
 ```bash
-node "__CONTEXT_CAPTURE_ROOT__/bin/context-capture.js" request $ARGUMENTS
+node "__CONTEXT_CAPTURE_ROOT__/bin/context-capture.js" latest
 ```
 
-If the command reports that no Chrome overlay appeared, tell the user to click the Context Capture Chrome extension button while the command is still waiting.
+If no capture exists yet, run:
+
+```bash
+node "__CONTEXT_CAPTURE_ROOT__/bin/context-capture.js" capture
+```

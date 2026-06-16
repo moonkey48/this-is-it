@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "bin": {
-    "context-capture": "./bin/context-capture.js"
+    "context-capture": "./bin/context-capture.js",
+    "context-capture-native-host": "./bin/context-capture-native-host.js"
   },
   "scripts": {
     "doctor": "node ./bin/context-capture.js doctor",
