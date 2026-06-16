@@ -365,20 +365,7 @@
     setTimeout(() => node.remove(), 2800);
   }
 
-  async function postResult(requestId, payload) {
-    if (!requestId) return false;
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: "context-capture:save",
-        payload,
-      });
-      return Boolean(response?.ok);
-    } catch {
-      return false;
-    }
-  }
-
-  function startOverlay(options = {}) {
+  function startOverlay() {
     if (overlayActive) return;
     overlayActive = true;
     ensureStyles();
@@ -450,46 +437,23 @@
       const payload = payloadForSelection(selection);
       const markdown = localMarkdown(payload);
       const copied = await copyText(markdown);
-
-      if (options.requestId) {
-        try {
-          const posted = await postResult(options.requestId, payload);
-          if (posted) {
-            toast(copied ? "Captured to clipboard and latest file." : "Saved latest file, but clipboard copy failed.");
-            return;
-          }
-        } catch {
-          // Fall back to local clipboard copy below.
-        }
-      }
-
       toast(copied ? "Captured to clipboard." : "Capture ready, but clipboard copy failed.");
     });
 
     overlay.addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
         cleanup();
-        if (options.requestId) {
-          chrome.runtime
-            ?.sendMessage?.({ type: "context-capture:cancelled", requestId: options.requestId })
-            .catch?.(() => {});
-        }
       }
     });
     overlay.tabIndex = -1;
     overlay.focus();
   }
 
-  async function startPendingOrManual() {
-    startOverlay({ requestId: "manual" });
-  }
-
   globalThis.chrome?.runtime?.onMessage?.addListener((message) => {
-    if (message?.type === "context-capture:start-manual") {
-      startPendingOrManual();
+    if (message?.type === "context-capture:start") {
+      startOverlay();
     }
   });
 
   window.__contextCaptureStart = startOverlay;
-  window.__contextCaptureStartPendingOrManual = startPendingOrManual;
 })();

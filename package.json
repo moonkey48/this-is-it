@@ -1,15 +1,13 @@
 {
   "name": "context-capture",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "bin": {
-    "context-capture": "./bin/context-capture.js",
-    "context-capture-native-host": "./bin/context-capture-native-host.js"
-  },
   "scripts": {
-    "doctor": "node ./bin/context-capture.js doctor",
-    "test": "node --test tests/*.test.js"
+    "icons": "node scripts/generate-icons.mjs",
+    "validate:chrome": "node scripts/validate-extension.mjs",
+    "package:chrome": "node scripts/package-extension.mjs",
+    "test": "npm run validate:chrome"
   },
   "engines": {
     "node": ">=20"

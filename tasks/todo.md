@@ -1,18 +1,16 @@
-# Context Capture Implementation
+# Context Capture Chrome Store Prep
 
 ## Plan
 
-- [x] Create project scaffold for a Chrome-first context capture tool.
-- [x] Implement a Node CLI/server that queues capture requests, waits for Chrome, copies Markdown to clipboard, and prints stdout.
-- [x] Implement a Chrome extension that opens a selection overlay and extracts URL, title, text, and compact DOM context.
-- [x] Add Codex and Claude Code integrations for the shared CLI.
-- [x] Add installation, doctor, tests, and local fixtures.
-- [x] Verify formatting, server behavior, and integration files.
+- [x] Identify CLI, Claude, native messaging, and agent integration dependencies.
+- [x] Convert the extension to Chrome-only clipboard capture.
+- [x] Remove Claude/Codex skill, CLI, native host, and installer surfaces.
+- [x] Add Chrome Web Store validation, packaging, icons, and listing notes.
+- [x] Verify the release package and update review notes.
 
 ## Review
 
-- `npm test` passed with 4 tests after running outside the sandbox so the local HTTP server could bind to `127.0.0.1`.
-- `context-capture doctor` passed and confirmed the CLI, port, extension source, Codex skill, Claude skill, and Claude command.
-- `quick_validate.py skills/capture-web-context` passed.
-- `node --check` passed for the CLI and extension scripts.
-- Chrome still requires the manual `Load unpacked` step for `extension/`.
+- `npm test` passed and now runs `npm run validate:chrome`.
+- `node --check` passed for `extension/background.js`, `extension/content-script.js`, `scripts/validate-extension.mjs`, and `scripts/package-extension.mjs`.
+- `npm run package:chrome` passed and created `dist/context-capture-0.2.0.zip`.
+- `unzip -l dist/context-capture-0.2.0.zip` confirmed the upload package contains only `manifest.json`, `background.js`, `content-script.js`, and PNG icons.

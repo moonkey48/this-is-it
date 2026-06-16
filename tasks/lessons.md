@@ -5,3 +5,4 @@
 - When injecting browser UI through AppleScript, do not rely on a separate extension CSS file. The injected script must create the visible styles and on-screen instructions itself.
 - Chrome unpacked extension metadata may be stored in `Secure Preferences`, not only `Preferences`, and may omit `manifest.name` and `state`. Detect by path plus empty `disable_reasons`.
 - For Claude/Codex common workflows, avoid shell processes that wait for a browser event. Prefer user-driven Chrome extension capture to clipboard, then let agents read the clipboard/latest result afterward.
+- If the primary user action is visual selection inside Chrome, make the Chrome extension the product surface. Do not add Claude, Codex, CLI, AppleScript, or native messaging layers unless they solve a distinct requirement.
