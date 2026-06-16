@@ -8,7 +8,12 @@ function normalizePath(value) {
   return path.resolve(String(value || "")).replace(/\/+$/, "");
 }
 
-export function findContextCaptureEntries(preferences, extensionDir = EXTENSION_DIR) {
+function looksLikeContextCapturePath(value) {
+  const normalized = normalizePath(value);
+  return /(^|\/)this-is-it\/extension$/.test(normalized);
+}
+
+export function findContextCaptureEntries(preferences, extensionDir = EXTENSION_DIR, options = {}) {
   const settings = preferences?.extensions?.settings;
   if (!settings || typeof settings !== "object") return [];
 
@@ -19,14 +24,21 @@ export function findContextCaptureEntries(preferences, extensionDir = EXTENSION_
     const extensionPath = setting?.path || "";
     const pathMatches = extensionPath && normalizePath(extensionPath) === wantedPath;
     const nameMatches = manifestName === "Context Capture";
-    if (!pathMatches && !nameMatches) continue;
+    const candidatePathMatches = options.includeOtherContextCapturePaths && looksLikeContextCapturePath(extensionPath);
+    if (!pathMatches && !nameMatches && !candidatePathMatches) continue;
+    const disableReasons = Array.isArray(setting?.disable_reasons) ? setting.disable_reasons : [];
+    const enabled =
+      setting?.state === 1 ||
+      (setting?.state === undefined && disableReasons.length === 0 && Boolean(extensionPath));
 
     entries.push({
       id,
       name: manifestName || "Context Capture",
       path: extensionPath,
-      enabled: setting?.state === 1,
+      enabled,
+      matchesCurrentPath: Boolean(pathMatches || nameMatches),
       state: setting?.state,
+      disableReasons,
     });
   }
   return entries;
@@ -60,29 +72,44 @@ export async function getChromeExtensionStatus(extensionDir = EXTENSION_DIR) {
   const entries = [];
   for (const dirent of profileDirs) {
     if (!dirent.isDirectory()) continue;
-    const preferencesPath = path.join(chromeRoot, dirent.name, "Preferences");
-    let preferences;
-    try {
-      preferences = JSON.parse(await fs.readFile(preferencesPath, "utf8"));
-    } catch {
-      continue;
-    }
+    for (const file of ["Preferences", "Secure Preferences"]) {
+      const preferencesPath = path.join(chromeRoot, dirent.name, file);
+      let preferences;
+      try {
+        preferences = JSON.parse(await fs.readFile(preferencesPath, "utf8"));
+      } catch {
+        continue;
+      }
 
-    for (const entry of findContextCaptureEntries(preferences, extensionDir)) {
-      entries.push({ ...entry, profile: dirent.name });
+      for (const entry of findContextCaptureEntries(preferences, extensionDir, {
+        includeOtherContextCapturePaths: true,
+      })) {
+        entries.push({ ...entry, profile: dirent.name, file });
+      }
     }
   }
 
-  const enabledEntries = entries.filter((entry) => entry.enabled);
+  const byProfileAndId = new Map();
+  for (const entry of entries) {
+    const key = `${entry.profile}/${entry.id}`;
+    const existing = byProfileAndId.get(key);
+    if (!existing || (!existing.enabled && entry.enabled)) byProfileAndId.set(key, entry);
+  }
+  const uniqueEntries = [...byProfileAndId.values()];
+  const matchingEntries = uniqueEntries.filter((entry) => entry.matchesCurrentPath);
+  const enabledEntries = matchingEntries.filter((entry) => entry.enabled);
+  const otherEnabledEntries = uniqueEntries.filter((entry) => !entry.matchesCurrentPath && entry.enabled);
   return {
     supported: true,
-    found: entries.length > 0,
+    found: matchingEntries.length > 0,
     enabled: enabledEntries.length > 0,
-    entries,
+    entries: uniqueEntries,
     message: enabledEntries.length
       ? enabledEntries.map((entry) => `${entry.profile}/${entry.id}`).join(", ")
-      : entries.length
-        ? entries.map((entry) => `${entry.profile}/${entry.id} disabled`).join(", ")
+      : matchingEntries.length
+        ? matchingEntries.map((entry) => `${entry.profile}/${entry.id} disabled`).join(", ")
+        : otherEnabledEntries.length
+          ? `loaded from another checkout: ${otherEnabledEntries.map((entry) => entry.path).join(", ")}`
         : "not loaded in any Chrome profile",
   };
 }

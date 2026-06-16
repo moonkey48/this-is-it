@@ -66,7 +66,7 @@ Claude Code에서:
 오버레이가 뜨지 않으면:
 
 1. macOS Automation 권한에서 현재 터미널, Claude Code, 또는 Codex가 Google Chrome을 제어할 수 있는지 확인하세요.
-2. Chrome 확장을 로드한 상태라면, 명령이 대기 중일 때 Chrome 툴바의 퍼즐 아이콘 > Context Capture를 클릭하세요.
+2. Chrome 확장을 로드한 상태라면, 명령이 대기 중일 때 Chrome 툴바의 고정된 Context Capture `C` 아이콘을 클릭하세요. 고정하지 않았다면 퍼즐 아이콘 > Context Capture를 클릭하세요.
 3. 확장 버튼을 누르면 대기 중인 CLI 요청에 붙어서 stdout/clipboard 결과를 반환합니다.
 
 ## Codex에서 쓰기
@@ -172,7 +172,7 @@ lsof -i :37421
 - `context-capture doctor`에서 `Chrome extension loaded`가 `[OK]`인지 확인하세요.
 - Chrome 확장이 보이지 않으면 툴바의 퍼즐 아이콘을 누른 뒤 Context Capture를 pin 하세요.
 - 페이지를 새로고침한 뒤 다시 시도하세요.
-- 명령이 대기 중일 때 Chrome 툴바의 퍼즐 아이콘 > Context Capture를 클릭하세요.
+- 명령이 대기 중일 때 Chrome 툴바의 고정된 Context Capture `C` 아이콘을 클릭하세요. 고정하지 않았다면 퍼즐 아이콘 > Context Capture를 클릭하세요.
 
 ## 개발 명령
 

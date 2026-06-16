@@ -138,7 +138,7 @@ async function requestCapture(args) {
       trigger.ok
         ? "A selection overlay should now be visible in the active Chrome tab. Drag over the page area to capture."
         : isAppleEventsJavaScriptDisabled(trigger.error)
-          ? "Chrome blocked auto-trigger. Use the extension fallback now: Chrome toolbar puzzle icon > Context Capture, then drag to select."
+          ? "Chrome blocked auto-trigger. Use the extension fallback now: click the pinned Context Capture C icon, or Chrome toolbar puzzle icon > Context Capture, then drag to select."
           : `Could not trigger Chrome automatically: ${trigger.error}`,
       extensionStatus.enabled
         ? `Extension fallback is available in Chrome profile: ${extensionStatus.message}`
