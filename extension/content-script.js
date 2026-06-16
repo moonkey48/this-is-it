@@ -9,6 +9,47 @@
   const MAX_ELEMENTS = 35;
   const MAX_LINKS = 15;
   const MAX_IMAGES = 12;
+  const STYLE_ID = "__context_capture_style";
+  const STYLE_TEXT = `
+.__context_capture_overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483646;
+  cursor: crosshair;
+  background: rgba(13, 17, 23, 0.08);
+  user-select: none;
+}
+.__context_capture_box {
+  position: fixed;
+  z-index: 2147483647;
+  border: 2px solid #1d9bf0;
+  background: rgba(29, 155, 240, 0.14);
+  box-shadow: 0 0 0 9999px rgba(13, 17, 23, 0.18);
+  pointer-events: none;
+}
+.__context_capture_hint,
+.__context_capture_toast {
+  position: fixed;
+  left: 50%;
+  z-index: 2147483647;
+  transform: translateX(-50%);
+  max-width: min(620px, calc(100vw - 32px));
+  border-radius: 8px;
+  background: #111827;
+  color: #fff;
+  font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+  text-align: center;
+}
+.__context_capture_hint {
+  top: 18px;
+  padding: 12px 14px;
+}
+.__context_capture_toast {
+  bottom: 24px;
+  padding: 10px 12px;
+}
+`;
   let overlayActive = false;
   let lastRequestId = "";
   let pollTimer = 0;
@@ -123,6 +164,14 @@
       if (result.length >= max) break;
     }
     return result;
+  }
+
+  function ensureStyles() {
+    if (document.getElementById(STYLE_ID)) return;
+    const style = document.createElement("style");
+    style.id = STYLE_ID;
+    style.textContent = STYLE_TEXT;
+    document.documentElement.appendChild(style);
   }
 
   function collectElements(selection) {
@@ -291,6 +340,7 @@
   }
 
   function toast(message) {
+    ensureStyles();
     const existing = document.querySelector(".__context_capture_toast");
     if (existing) existing.remove();
     const node = document.createElement("div");
@@ -312,12 +362,16 @@
   function startOverlay(options = {}) {
     if (overlayActive) return;
     overlayActive = true;
+    ensureStyles();
 
     const overlay = document.createElement("div");
     const box = document.createElement("div");
+    const hint = document.createElement("div");
     overlay.className = "__context_capture_overlay";
     box.className = "__context_capture_box";
-    document.documentElement.append(overlay, box);
+    hint.className = "__context_capture_hint";
+    hint.textContent = "Drag to select the page area. Press Esc to cancel.";
+    document.documentElement.append(overlay, box, hint);
 
     let startX = 0;
     let startY = 0;
@@ -333,6 +387,7 @@
     function cleanup() {
       overlay.remove();
       box.remove();
+      hint.remove();
       overlayActive = false;
     }
 

@@ -66,3 +66,9 @@ if (typeof window.__contextCaptureStart === "function") {
     "end tell",
   ]);
 }
+
+export function isAppleEventsJavaScriptDisabled(errorText) {
+  return /JavaScript from Apple Events|JavaScript through AppleScript|Apple Events.*JavaScript/i.test(
+    String(errorText || ""),
+  );
+}

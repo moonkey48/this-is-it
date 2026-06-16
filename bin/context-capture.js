@@ -12,7 +12,8 @@ import {
   VERSION,
 } from "../src/config.js";
 import { copyToClipboard } from "../src/clipboard.js";
-import { triggerChromeSelection } from "../src/chrome-trigger.js";
+import { getChromeExtensionStatus } from "../src/chrome-extension.js";
+import { isAppleEventsJavaScriptDisabled, triggerChromeSelection } from "../src/chrome-trigger.js";
 import { readLatestMarkdown } from "../src/store.js";
 import { startCaptureServer } from "../src/server.js";
 
@@ -108,14 +109,40 @@ async function requestCapture(args) {
   });
 
   const trigger = await triggerChromeSelection({ requestId: capture.requestId, port });
+  const extensionStatus = await getChromeExtensionStatus();
+
+  if (!trigger.ok && !extensionStatus.enabled) {
+    await capture.close();
+    const appleEventsBlocked = isAppleEventsJavaScriptDisabled(trigger.error);
+    const reason = appleEventsBlocked
+      ? "Chrome blocked the automatic trigger because Allow JavaScript from Apple Events is disabled."
+      : `Chrome could not be triggered automatically: ${trigger.error}`;
+    throw new Error(
+      [
+        reason,
+        "",
+        "No enabled Context Capture Chrome extension was found, so there is no way to show the selector in Chrome.",
+        "",
+        "Fix one of these, then rerun the command:",
+        "1. Chrome menu: View > Developer > Allow JavaScript from Apple Events",
+        `2. Or load the extension: chrome://extensions > Developer mode > Load unpacked > ${EXTENSION_DIR}`,
+        "",
+        "After loading the extension, click the puzzle icon in Chrome toolbar, pin Context Capture, then rerun.",
+      ].join("\n"),
+    );
+  }
 
   console.error(
     [
       `Waiting for Chrome selection on http://127.0.0.1:${capture.port}`,
       trigger.ok
-        ? "Triggered the active Chrome tab. Select an area in Chrome."
-        : `Could not trigger Chrome automatically: ${trigger.error}`,
-      "If nothing appears, reload the page or click the Context Capture extension button while this command is waiting.",
+        ? "A selection overlay should now be visible in the active Chrome tab. Drag over the page area to capture."
+        : isAppleEventsJavaScriptDisabled(trigger.error)
+          ? "Chrome blocked auto-trigger. Use the extension fallback now: Chrome toolbar puzzle icon > Context Capture, then drag to select."
+          : `Could not trigger Chrome automatically: ${trigger.error}`,
+      extensionStatus.enabled
+        ? `Extension fallback is available in Chrome profile: ${extensionStatus.message}`
+        : "Extension fallback is not available.",
     ].join("\n"),
   );
 
@@ -167,6 +194,14 @@ async function doctor(args) {
     .catch(() => false);
   rows.push(["Chrome extension source", EXTENSION_DIR, extensionExists]);
   if (!extensionExists) ok = false;
+
+  const extensionStatus = await getChromeExtensionStatus();
+  rows.push([
+    "Chrome extension loaded",
+    extensionStatus.enabled ? extensionStatus.message : extensionStatus.message,
+    extensionStatus.enabled,
+  ]);
+  if (!extensionStatus.enabled) ok = false;
 
   const home = os.homedir();
   const codexSkill = path.join(home, ".codex", "skills", "capture-web-context", "SKILL.md");

@@ -39,12 +39,13 @@ scripts/install.sh
 
 기본 사용 흐름은 macOS Automation으로 실행 중인 Chrome의 활성 탭에 선택 오버레이를 직접 띄웁니다. 첫 실행 때 macOS가 터미널, Claude Code, 또는 Codex에 Google Chrome 제어 권한을 물어볼 수 있습니다. 허용해야 자동으로 오버레이가 뜹니다.
 
-자동 주입이 막히는 환경을 대비해 Chrome 확장도 한 번 로드해두는 것을 권장합니다.
+자동 주입이 막히는 환경을 대비해 Chrome 확장도 한 번 로드해두는 것을 권장합니다. `context-capture doctor`는 확장이 실제 Chrome profile에 로드됐는지도 확인합니다.
 
 1. Chrome에서 `chrome://extensions` 열기
 2. Developer mode 켜기
 3. Load unpacked 클릭
 4. 이 repo의 `extension/` 폴더 선택
+5. Chrome 툴바의 퍼즐 아이콘을 누르고 Context Capture를 pin 해두기
 
 ## 사용법
 
@@ -60,12 +61,12 @@ Claude Code에서:
 /capture-context --timeout 60
 ```
 
-명령이 대기 중일 때 실행 중인 Chrome의 활성 탭 위에 선택 오버레이가 뜹니다. 원하는 영역을 드래그하면 Markdown 결과가 stdout으로 출력되고 클립보드에도 복사됩니다.
+명령이 대기 중일 때 실행 중인 Chrome의 활성 탭 위에 선택 오버레이가 뜹니다. Chrome 화면 상단에 `Drag to select the page area` 안내가 보이면 원하는 영역을 드래그하세요. Markdown 결과가 stdout으로 출력되고 클립보드에도 복사됩니다.
 
 오버레이가 뜨지 않으면:
 
 1. macOS Automation 권한에서 현재 터미널, Claude Code, 또는 Codex가 Google Chrome을 제어할 수 있는지 확인하세요.
-2. Chrome 확장을 로드한 상태라면, 명령이 대기 중일 때 Chrome 툴바의 Context Capture 확장 버튼을 클릭하세요.
+2. Chrome 확장을 로드한 상태라면, 명령이 대기 중일 때 Chrome 툴바의 퍼즐 아이콘 > Context Capture를 클릭하세요.
 3. 확장 버튼을 누르면 대기 중인 CLI 요청에 붙어서 stdout/clipboard 결과를 반환합니다.
 
 ## Codex에서 쓰기
@@ -168,9 +169,10 @@ lsof -i :37421
 
 - 현재 탭이 일반 `https://` 웹페이지인지 확인하세요.
 - macOS Automation 권한에서 현재 실행 앱이 Google Chrome을 제어할 수 있는지 확인하세요.
-- Chrome 확장이 로드되어 있는지 확인하세요.
+- `context-capture doctor`에서 `Chrome extension loaded`가 `[OK]`인지 확인하세요.
+- Chrome 확장이 보이지 않으면 툴바의 퍼즐 아이콘을 누른 뒤 Context Capture를 pin 하세요.
 - 페이지를 새로고침한 뒤 다시 시도하세요.
-- 명령이 대기 중일 때 Chrome 툴바의 Context Capture 확장 버튼을 클릭하세요.
+- 명령이 대기 중일 때 Chrome 툴바의 퍼즐 아이콘 > Context Capture를 클릭하세요.
 
 ## 개발 명령
 

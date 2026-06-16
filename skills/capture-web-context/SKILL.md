@@ -24,7 +24,7 @@ node /path/to/context-capture/bin/context-capture.js request --timeout 60
 
 3. Tell the user to drag over the target Chrome page area if the overlay appears. If macOS asks for Automation permission to control Google Chrome, tell the user to allow it.
 
-4. If no overlay appears, tell the user to reload the page or click the Context Capture Chrome extension button while the command is still waiting.
+4. If no overlay appears, tell the user to reload the page or click Chrome toolbar puzzle icon > Context Capture while the command is still waiting. If Context Capture is not listed there, the extension is not loaded in the active Chrome profile.
 
 5. Treat the command stdout as the captured source context. It includes URL, title, selected text, links, image alt text, and a DOM summary.
 
